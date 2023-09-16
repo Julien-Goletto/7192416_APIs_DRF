@@ -10,7 +10,8 @@ class ArticleViewSet(ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = Article.objects.filter(active=True)
         product_id = self.request.GET.get("product_id")
-        queryset = queryset.filter(product_id=product_id)
+        if product_id is not None:
+            queryset = queryset.filter(product_id=product_id)
         return queryset
     
 class CategoryViewSet(ReadOnlyModelViewSet):
