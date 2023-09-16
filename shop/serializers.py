@@ -11,6 +11,7 @@ class ArticleSerializer(ModelSerializer):
             "name",
             "description",
             "price",
+            "product",
             "active",
             "date_created",
             "date_updated",
