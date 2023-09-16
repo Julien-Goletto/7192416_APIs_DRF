@@ -1,9 +1,11 @@
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .models import Article, Category, Product
 from .serializers import ArticleSerializer, CategoryListSerializer, CategoryDetailSerializer, ProductListSerializer, ProductDetailSerializer
 
-class ViewSetMixin(ReadOnlyModelViewSet):
+class ViewSetMixin(ModelViewSet):
     def get_serializer_class(self):
         # If retrieve is asked, return its specific serializer
         if self.action == 'retrieve':
@@ -11,7 +13,7 @@ class ViewSetMixin(ReadOnlyModelViewSet):
         return super().get_serializer_class()
 
 
-class ArticleViewSet(ReadOnlyModelViewSet):
+class ArticleViewSet(ModelViewSet):
     serializer_class = ArticleSerializer
     def get_queryset(self):
         queryset = Article.objects.filter(active=True)
@@ -34,7 +36,14 @@ class CategoryViewSet(ViewSetMixin):
             return self.detail_serializer_class
         return super().get_serializer_class()
     
-class ProductViewSet(ReadOnlyModelViewSet):
+    @action(detail=True, methods=['post'])
+    def disable(self, request, pk):
+        # Action defined for POST method only
+        # Usable only with a detail view
+        self.get_object().disable()
+        return Response()
+    
+class ProductViewSet(ViewSetMixin):
     serializer_class = ProductListSerializer
     detail_serializer_class = ProductDetailSerializer
 
@@ -49,4 +58,9 @@ class ProductViewSet(ReadOnlyModelViewSet):
         if self.action == 'retrieve':
             return self.detail_serializer_class
         return super().get_serializer_class()
+    
+    @action(detail=True, methods=['post'])
+    def disable(self, request, pk):
+        self.get_object().disable()
+        return Response()
 
