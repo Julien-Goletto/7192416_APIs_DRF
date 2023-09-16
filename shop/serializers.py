@@ -17,7 +17,18 @@ class ArticleSerializer(ModelSerializer):
             "date_updated",
         ]
 
-class ProductSerializer(ModelSerializer):
+class ProductListSerializer(ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "name",
+            "active",
+            "date_created",
+            "date_updated",
+        ]
+    
+class ProductDetailSerializer(ModelSerializer):
     articles = SerializerMethodField()
 
     class Meta:
@@ -32,13 +43,18 @@ class ProductSerializer(ModelSerializer):
             "date_created",
             "date_updated",
         ]
-    
+
     def get_articles(self, instance):
         queryset = instance.articles.filter(active=True)
         serializer = ArticleSerializer(queryset, many=True)
         return serializer.data
 
-class CategorySerializer(ModelSerializer):
+class CategoryListSerializer(ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name", "active", "date_created", "date_updated"]
+    
+class CategoryDetailSerializer(ModelSerializer):
     # Define a proper serializer for the products field
     # Using SerializerMethodField requiers a method with the name get_<field_name>
     products = SerializerMethodField()
@@ -50,6 +66,6 @@ class CategorySerializer(ModelSerializer):
     # Apply this method for each category instance in our category list
     def get_products(self, instance):
         queryset = instance.products.filter(active=True)
-        serializer = ProductSerializer(queryset, many=True)
+        serializer = ProductListSerializer(queryset, many=True)
         return serializer.data
 

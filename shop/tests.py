@@ -12,26 +12,51 @@ class TestCategory(ShopAPITestCase):
   # Storing endpoint url to use it easily in each test we want
   url = reverse_lazy('category-list')
 
-  def tests_list(self):
+  def test_category_list(self):
     # Fisrt create two fake categories, one only is active to test the filter
-    fake_category_1 = Category.objects.create(name='Fake category 1', description='Fake category 1 description', active=True)
-    Category.objects.create(name='Fake category 2', description='Fake category 2 description', active=False)
+    fake_category_1 = Category.objects.create(name='Fake category 1', active=True)
+    Category.objects.create(name='Fake category 2', active=False)
 
-    reponse = self.client.get(self.url)
-    self.assertEqual(reponse.status_code, 200)
+    response = self.client.get(self.url)
+    self.assertEqual(response.status_code, 200)
     expected=[
       {
         'id': fake_category_1.pk,
         'name': fake_category_1.name,
-        'description': fake_category_1.description,
         'active': fake_category_1.active,
         'date_created': self.format_datetime(fake_category_1.date_created),
         'date_updated': self.format_datetime(fake_category_1.date_updated),
       }
     ]
-    self.assertEqual(reponse.data, expected)
+    self.assertEqual(response.data['results'], expected)
 
-  def test_create(self):
+  def test_category_detail(self):
+    fake_category = Category.objects.create(name='Fake category 1', description="Fake category 1 description", active=True)
+    fake_product = Product.objects.create(name='Fake product 1', description='Fake product 1 description', category=fake_category, active=True)
+    url_detail = reverse_lazy('category-detail', kwargs={'pk': fake_category.pk})
+    response = self.client.get(url_detail)
+
+    self.assertEqual(response.status_code, 200)
+    expected={
+        'id': fake_category.pk,
+        'name': fake_category.name,
+        'description': fake_category.description,
+        'active': fake_category.active,
+        'date_created': self.format_datetime(fake_category.date_created),
+        'date_updated': self.format_datetime(fake_category.date_updated),
+        'products': [
+          {
+            'id': fake_product.pk,
+            'name': fake_product.name,
+            'active': fake_product.active,
+            'date_created': self.format_datetime(fake_product.date_created),
+            'date_updated': self.format_datetime(fake_product.date_updated),
+          }
+        ],
+      }
+    self.assertEqual(response.data, expected)
+
+  def test_category_create(self):
     # Check no category exists before creating one
     self.assertFalse(Category.objects.exists())
     response = self.client.post(self.url, data={"name": "New fake category"})
@@ -43,7 +68,7 @@ class TestCategory(ShopAPITestCase):
 class TestProduct(ShopAPITestCase):
   url = reverse_lazy('product-list')
 
-  def test_list(self):
+  def test_product_list(self):
     # Create first a category to link the product to
     fake_category = Category.objects.create(name='Fake category', description='Fake category description', active=True)
     fake_product_1 = Product.objects.create(name='Fake product 1', description='Fake product 1 description', category=fake_category, active=True)
@@ -54,22 +79,20 @@ class TestProduct(ShopAPITestCase):
       {
         'id': fake_product_1.pk,
         'name': fake_product_1.name,
-        'description': fake_product_1.description,
-        'category': fake_product_1.category.pk,
         'active': fake_product_1.active,
         'date_created': self.format_datetime(fake_product_1.date_created),
         'date_updated': self.format_datetime(fake_product_1.date_updated),
       }
     ]
-    self.assertEqual(response.data, expected)
+    self.assertEqual(response.data['results'], expected)
 
-  def test_create(self):
+  def test_product_create(self):
     self.assertFalse(Product.objects.exists())
     response = self.client.post(self.url, data={"name": "New fake product"})
     self.assertEqual(response.status_code, 405)
     self.assertFalse(Product.objects.exists())
 
-  def test_delete(self):
+  def test_product_delete(self):
     fake_category = Category.objects.create(name='Fake category', description='Fake category description', active=True)
     fake_product = Product.objects.create(name='Fake product 2', description='Fake product 2 description', category=fake_category, active=True)
     product_count = Product.objects.count()
@@ -77,7 +100,7 @@ class TestProduct(ShopAPITestCase):
     self.assertEqual(response.status_code, 405)
     self.assertEqual(Product.objects.count(), product_count)
   
-  def test_category_filter(self):
+  def test_product_category_filter(self):
     fake_category_1 = Category.objects.create(name='Fake category', description='Fake category description', active=True)
     fake_category_2 = Category.objects.create(name='Fake category 2', description='Fake category 2 description', active=True)
     fake_product_1 = Product.objects.create(name='Fake product 2', description='Fake product 2 description', category=fake_category_1, active=True)
@@ -86,8 +109,6 @@ class TestProduct(ShopAPITestCase):
       {
         'id': fake_product_1.pk,
         'name': fake_product_1.name,
-        'description': fake_product_1.description,
-        'category': fake_product_1.category.pk,
         'active': fake_product_1.active,
         'date_created': self.format_datetime(fake_product_1.date_created),
         'date_updated': self.format_datetime(fake_product_1.date_updated),
@@ -95,4 +116,5 @@ class TestProduct(ShopAPITestCase):
     ]
     response = self.client.get(self.url + f"?category_id={fake_category_1.pk}")
     self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.data, expected)
+    print(response.data['results'])
+    self.assertEqual(response.data['results'], expected)
