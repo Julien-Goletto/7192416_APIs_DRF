@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework.serializers import ModelSerializer, SerializerMethodField, ValidationError
 
 from .models import Article, Category, Product
 
@@ -15,7 +15,17 @@ class ArticleSerializer(ModelSerializer):
             "active",
             "date_created",
             "date_updated",
-        ]
+        ]   
+
+    def validate_price(self, price):
+        if price < 1:
+            raise ValidationError("Price must be greater than 1€")
+        return price
+
+    def validate_active(self, active):
+        if not active:
+            raise ValidationError("Article must be active")
+        return active
 
 class ProductListSerializer(ModelSerializer):
     class Meta:
@@ -52,7 +62,19 @@ class ProductDetailSerializer(ModelSerializer):
 class CategoryListSerializer(ModelSerializer):
     class Meta:
         model = Category
-        fields = ["id", "name", "active", "date_created", "date_updated"]
+        fields = ["id", "name", "description", "active", "date_created", "date_updated"]
+
+    def validate_name(self, value):
+        # Early check that the categorye exists
+        if Category.objects.filter(name=value).exists():
+            raise ValidationError("Category already exists")
+        return value
+    
+    def validate(self, data):
+        # Check if the name is present in category description
+        if data["name"] not in data["description"]:
+            raise ValidationError("Name must be present in description")
+        return data
     
 class CategoryDetailSerializer(ModelSerializer):
     # Define a proper serializer for the products field
@@ -68,4 +90,3 @@ class CategoryDetailSerializer(ModelSerializer):
         queryset = instance.products.filter(active=True)
         serializer = ProductListSerializer(queryset, many=True)
         return serializer.data
-

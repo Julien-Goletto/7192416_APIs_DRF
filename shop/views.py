@@ -1,19 +1,18 @@
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Article, Category, Product
 from .serializers import ArticleSerializer, CategoryListSerializer, CategoryDetailSerializer, ProductListSerializer, ProductDetailSerializer
 
-class ViewSetMixin(ModelViewSet):
+class MultipleSerializersMixin():
     def get_serializer_class(self):
         # If retrieve is asked, return its specific serializer
         if self.action == 'retrieve':
             return self.detail_serializer_class
         return super().get_serializer_class()
 
-
-class ArticleViewSet(ModelViewSet):
+class ArticleViewSet(MultipleSerializersMixin, ReadOnlyModelViewSet):
     serializer_class = ArticleSerializer
     def get_queryset(self):
         queryset = Article.objects.filter(active=True)
@@ -22,7 +21,7 @@ class ArticleViewSet(ModelViewSet):
             queryset = queryset.filter(product_id=product_id)
         return queryset
     
-class CategoryViewSet(ViewSetMixin):
+class CategoryViewSet(MultipleSerializersMixin, ReadOnlyModelViewSet):
     serializer_class = CategoryListSerializer
     # Defining a detail serializer class for the retrieve action
     detail_serializer_class = CategoryDetailSerializer
@@ -43,7 +42,7 @@ class CategoryViewSet(ViewSetMixin):
         self.get_object().disable()
         return Response()
     
-class ProductViewSet(ViewSetMixin):
+class ProductViewSet(MultipleSerializersMixin, ReadOnlyModelViewSet):
     serializer_class = ProductListSerializer
     detail_serializer_class = ProductDetailSerializer
 
@@ -64,3 +63,16 @@ class ProductViewSet(ViewSetMixin):
         self.get_object().disable()
         return Response()
 
+class AdminCategoryViewSet(MultipleSerializersMixin, ModelViewSet):
+    serializer_class = CategoryListSerializer
+    detail_serializer_class = CategoryDetailSerializer
+
+    def get_queryset(self):
+        return Category.objects.all()
+
+class AdminArticleViewSet(MultipleSerializersMixin, ModelViewSet):
+    serializer_class = ArticleSerializer
+    detail_serializer_class = ArticleSerializer
+
+    def get_queryset(self):
+        return Article.objects.all()
